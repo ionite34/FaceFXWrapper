@@ -210,7 +210,6 @@ int StartCommandLine()
 				std::string delim = "|";
 				std::vector<std::string> inArgs{};
 				printf("[FXE] > RFI\n");
-				// Automatically sent an newline into the cin
 				std::cin.ignore();
 				std::getline(std::cin, inStr); // Unformatted input
 				// Read using '|' delimiter into string vector
