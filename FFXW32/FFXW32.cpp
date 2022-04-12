@@ -227,10 +227,7 @@ int StartCommandLine()
 					{
 						printf("[FXE] > FAILED LIPGEN\n");
 					}
-					else 
-					{
-						printf("[FXE] > COMPLETED\n");
-					}
+					printf("[FXE] > COMPLETED\n");
 					continue;
 				}
 				else if (!useResample && (inArgs.size() == 3))
@@ -239,10 +236,7 @@ int StartCommandLine()
 					{
 						printf("[FXE] > FAILED LIPGEN\n");
 					}
-					else
-					{
-						printf("[FXE] > COMPLETED\n");
-					}
+					printf("[FXE] > COMPLETED\n");
 					continue;
 				}
 				else if (inArgs.size() == 1 && (inArgs[0] == "exit")) 
