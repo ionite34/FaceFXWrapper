@@ -3,6 +3,9 @@
 #include <thread>
 #include <atomic>
 #include <array>
+#include <iostream>
+#include <vector>
+#include <string>
 #include "Loader.h"
 #include "CreationKit32.h"
 #include "LipSynchAnim.h"
@@ -15,6 +18,19 @@ bool RunLipGeneration(const char *Language, const char *FonixDataPath, const cha
 	CreationKit::SetFaceFXLanguage(Language);
 	CreationKit::SetFaceFXAutoResampling(Resample);
 
+	auto lipAnim = LipSynchAnim::Generate(WavPath, ResampledWavPath, Text);
+
+	if (!lipAnim)
+		return false;
+
+	bool result = lipAnim->SaveToFile(LipPath, true, true);
+
+	lipAnim->Free();
+	return result;
+}
+
+bool RunExtLipGeneration(const char* WavPath, const char* ResampledWavPath, const char* LipPath, const char* Text)
+{
 	auto lipAnim = LipSynchAnim::Generate(WavPath, ResampledWavPath, Text);
 
 	if (!lipAnim)
@@ -163,12 +179,12 @@ int StartCreationKitIPC(uint32_t ProcessID)
 
 int StartCommandLine()
 {
-	auto initVersionFromArgv = []()
+	auto initVersionFromArgv = [](int index = 1)
 	{
-		if (!_stricmp(__argv[1], "Skyrim"))
+		if (!_stricmp(__argv[index], "Skyrim"))
 			return Loader::Initialize(Loader::GameVersion::SkyrimOrEarlier);
 
-		if (!_stricmp(__argv[1], "Fallout4"))
+		if (!_stricmp(__argv[index], "Fallout4"))
 			return Loader::Initialize(Loader::GameVersion::Fallout4);
 
 		printf("Unknown generator type \"%s\"\n", __argv[1]);
@@ -177,6 +193,73 @@ int StartCommandLine()
 
 	switch (__argc)
 	{
+	case 6:
+		// New start method fxe
+		if (!_stricmp(__argv[1], "fxe")) 
+		{
+			if (!initVersionFromArgv(2))
+				return 1;
+			bool useResample = !_stricmp(__argv[5], "true");
+			CreationKit::SetFaceFXLanguage(__argv[3]);
+			CreationKit::SetFaceFXDataPath(__argv[4]);
+			CreationKit::SetFaceFXAutoResampling(useResample);
+			printf("[FXE] > Init OK\n");
+			while (true) 
+			{
+				std::string inStr;
+				std::string delim = "|";
+				std::vector<std::string> inArgs{};
+				printf("[FXE] > RFI\n");
+				// Automatically sent an newline into the cin
+				std::cin.ignore();
+				std::getline(std::cin, inStr); // Unformatted input
+				// Read using '|' delimiter into string vector
+				size_t pos = 0;
+				while ((pos = inStr.find(delim)) != std::string::npos) {
+					inArgs.push_back(inStr.substr(0, pos));
+					inStr.erase(0, pos + delim.length());
+				}
+
+				// Check version to run
+				if (useResample && (inArgs.size() == 4))
+				{	// Resampling enabled
+					if (!RunExtLipGeneration(inArgs[0].c_str(), inArgs[1].c_str(), inArgs[2].c_str(), inArgs[3].c_str()))
+					{
+						printf("[FXE] > FAILED LIPGEN\n");
+					}
+					else 
+					{
+						printf("[FXE] > COMPLETED\n");
+					}
+					continue;
+				}
+				else if (!useResample && (inArgs.size() == 3))
+				{	// Resampling disabled
+					if (!RunExtLipGeneration(inArgs[0].c_str(), inArgs[0].c_str(), inArgs[1].c_str(), inArgs[2].c_str()))
+					{
+						printf("[FXE] > FAILED LIPGEN\n");
+					}
+					else
+					{
+						printf("[FXE] > COMPLETED\n");
+					}
+					continue;
+				}
+				else if (inArgs.size() == 1 && (inArgs[0] == "exit")) 
+				{
+					return 0;
+				}
+				else
+				{
+					// Invalid Parameters
+					printf("[FXE] > INVALID PARAMS\n");
+					continue;
+				}
+			}
+		}
+
+		printf("Unknown startup command \"%s\"\n", __argv[1]);
+		return 1;
 	case 7:
 		if (!initVersionFromArgv())
 			return 1;
